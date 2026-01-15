@@ -1,0 +1,34 @@
+name: Central Discord Bot
+
+on:
+  workflow_call:
+    secrets:
+      DISCORD_REPORTING_BOT_WEBHOOK:
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout the CENTRAL repository (where the JS logic lives)
+      - name: Checkout Central Bot Repo
+        uses: actions/checkout@v4
+        with:
+          repository: Generacja-Innowacja/github-webhook-bot
+          ref: main 
+
+      # 2. Setup environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      # 3. Run the bot script
+      - name: Run Bot Script
+        run: node src/index.js
+        env:
+          DISCORD_REPORTING_BOT_WEBHOOK: ${{ secrets.DISCORD_REPORTING_BOT_WEBHOOK }}

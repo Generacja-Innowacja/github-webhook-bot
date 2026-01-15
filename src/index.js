@@ -2,13 +2,14 @@
 require('dotenv').config();
 
 const fs = require('fs');
-// Although Node 18+ has native fetch, we import it to satisfy dependencies requirement
+// Use dynamic import for node-fetch (ESM module) compatibility
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 async function run() {
-    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    const webhookUrl = process.env.DISCORD_REPORTING_BOT_WEBHOOK;
+    
     if (!webhookUrl) {
-        console.error("❌ ERROR: Missing DISCORD_WEBHOOK_URL environment variable.");
+        console.error("❌ ERROR: Missing DISCORD_REPORTING_BOT_WEBHOOK environment variable.");
         process.exit(1);
     }
 
@@ -39,7 +40,6 @@ async function run() {
     if (eventName === 'issues') {
         const { action, issue, repository, sender } = payload;
         const colors = { opened: 0x2ecc71, closed: 0xe74c3c, reopened: 0xe67e22 };
-        
         const labels = issue.labels ? issue.labels.map(l => l.name).join(', ') : 'None';
         const assignees = issue.assignees ? issue.assignees.map(u => u.login).join(', ') : 'None';
 
@@ -58,7 +58,6 @@ async function run() {
             footer: { text: "GitHub Issues • " + action.toUpperCase(), icon_url: ghIcon }
         };
     }
-
     else if (eventName === 'pull_request') {
         const { action, pull_request, repository, sender } = payload;
         let statusText = translateAction(action);
@@ -88,7 +87,6 @@ async function run() {
             footer: { text: "GitHub PR • " + repository.name, icon_url: ghIcon }
         };
     }
-
     else if (eventName === 'pull_request_review') {
         const { review, pull_request, repository, sender } = payload;
         const state = review.state; 
@@ -111,7 +109,6 @@ async function run() {
             footer: { text: repository.full_name, icon_url: ghIcon }
         };
     }
-
     else if (eventName === 'push') {
         const { ref, commits, repository, sender, forced, compare } = payload;
         if (commits && commits.length > 0) {
@@ -132,7 +129,6 @@ async function run() {
             };
         }
     }
-
     else if (eventName === 'pull_request_review_comment') {
         const { comment, pull_request, repository, sender } = payload;
         let diff = comment.diff_hunk;
@@ -151,7 +147,6 @@ async function run() {
             footer: { text: repository.full_name, icon_url: ghIcon }
         };
     }
-
     else if (eventName === 'issue_comment') {
         const { comment, issue, repository, sender } = payload;
         const type = issue.pull_request ? "PR" : "Issue";
@@ -161,20 +156,6 @@ async function run() {
             author: { name: sender.login, icon_url: sender.avatar_url, url: sender.html_url },
             footer: { text: repository.full_name, icon_url: ghIcon }
         };
-    }
-    else if (eventName === 'release') { 
-        const { release, repository, sender } = payload;
-        embed = { 
-            title: `🚀 New Release: ${release.tag_name}`, url: release.html_url, description: release.name, color: 0xffd700, 
-            thumbnail: { url: repository.owner.avatar_url }, author: { name: sender.login, icon_url: sender.avatar_url }, timestamp: new Date().toISOString()
-        }; 
-    }
-    else if (eventName === 'watch') { 
-        const { repository, sender } = payload;
-        embed = { 
-            title: `🌟 New Star!`, color: 0xFFFF00, author: { name: sender.login, icon_url: sender.avatar_url },
-            fields: [{name: "Stars", value: `${repository.stargazers_count} ⭐`}], url: repository.html_url
-        }; 
     }
 
     if (embed) {
